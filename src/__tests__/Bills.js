@@ -12,6 +12,7 @@ import Bills from "../containers/Bills.js";
 import userEvent from '@testing-library/user-event';
 import mockStore from "../__mocks__/store"
 import router from "../app/Router.js";
+import { formatDate } from '../app/format.js'
 
 describe("Given I am connected as an employee", () => {
   describe("When I am on Bills Page", () => {
@@ -29,11 +30,15 @@ describe("Given I am connected as an employee", () => {
     })
 
     test("Then bills should be ordered from earliest to latest", () => {
+      const antiChrono = (a, b) => ((a < b) ? 1 : -1)
+      const sortedDates = bills
+        .map(bill => bill.date)
+        .sort(antiChrono)
+        .map(date => formatDate(date))
       document.body.innerHTML = BillsUI({ data: bills })
       //const dates = screen.getAllByText(/^(19|20)\d\d[- /.](0[1-9]|1[012])[- /.](0[1-9]|[12][0-9]|3[01])$/i).map(a => a.innerHTML)
-      const dates = screen.getAllByText(/^\d{0,2} (Jan.|Fev.|Mar.|Avr.|Mai|Jui.|Jui.|Aou.|Sep.|Oct.|Nov.|Dec.) \d{2}/).map(a => a.innerHTML)
-      const antiChrono = (a, b) => ((a < b) ? 1 : -1)
-      const sortedDates = [...dates].sort(antiChrono)
+      const dates = screen.getAllByText(/^\d{0,2} (Jan.|Fév.|Mar.|Avr.|Mai|Jui.|Jui.|Aoû.|Sep.|Oct.|Nov.|Dec.) \d{2}/).map(a => a.innerHTML)
+
       expect(dates).toEqual(sortedDates) 
     })
 
@@ -74,17 +79,19 @@ jest.mock("../app/store", () => { return mockStore })
 
 describe("Given I am an user connected as Employee", () => {
   describe("When I am on the Bills Page", () => {
-    test("it should fetch bills from mock API GET", () => {
+    test("it should fetch bills from mock API GET", async () => {
+      document.body.innerHTML = ""
       Object.defineProperty(window, 'localStorage', { value: localStorageMock })
       window.localStorage.setItem('user', JSON.stringify({ type: 'Employee', email: 'a@a'}))
       const root = document.createElement("div")
       root.setAttribute("id", "root")
       document.body.append(root)
       router()
-      window.onNavigate(ROUTES_PATH.Bills) 
+      window.onNavigate(ROUTES_PATH.Bills)
+      await new Promise(process.nextTick)
       const tableBills = screen.getByTestId('tbody')
       const arrayBills = tableBills.children
-
+     
       expect(arrayBills.length).toBeGreaterThan(0)
       expect(arrayBills.length).toBe(4)
     })
